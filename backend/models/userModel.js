@@ -73,7 +73,44 @@ const User = {
             console.error('Error al conectar a la base de datos:', error.message);
             return false;
         }
+    },
+    // Obtener roles de un usuario
+    async getUserRoles(userId) {
+        const [rows] = await pool.query(
+            'SELECT r.name FROM roles r INNER JOIN user_roles ur ON r.id = ur.role_id WHERE ur.user_id = ?',
+            [userId]
+        );
+        return rows.map(row => row.name);
+    },
+
+    // Obtener permisos de un usuario
+    async getUserPermissions(userId) {
+        const [rows] = await pool.query(
+            'SELECT DISTINCT p.name FROM permissions p ' +
+            'INNER JOIN role_permissions rp ON p.id = rp.permission_id ' +
+            'INNER JOIN user_roles ur ON rp.role_id = ur.role_id ' +
+            'WHERE ur.user_id = ?',
+            [userId]
+        );
+        return rows.map(row => row.name);
+    },
+
+    // Asignar rol a un usuario
+    async assignRole(userId, roleName) {
+        const [role] = await pool.query('SELECT id FROM roles WHERE name = ?', [roleName]);
+        if (role.length === 0) throw new Error('Role not found');
+        
+        await pool.query('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)', [userId, role[0].id]);
+    },
+
+    // Remover rol de un usuario
+    async removeRole(userId, roleName) {
+        const [role] = await pool.query('SELECT id FROM roles WHERE name = ?', [roleName]);
+        if (role.length === 0) throw new Error('Role not found');
+        
+        await pool.query('DELETE FROM user_roles WHERE user_id = ? AND role_id = ?', [userId, role[0].id]);
     }
+
 };
 
 module.exports = User;
