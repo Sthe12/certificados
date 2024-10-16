@@ -11,6 +11,8 @@ function RegistrarUsuarios() {
     const [isCreating, setIsCreating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [roles, setRoles] = useState([]);
+    const [selectedRole, setSelectedRole] = useState('');
 
     const token = localStorage.getItem('token');
 
@@ -25,9 +27,21 @@ function RegistrarUsuarios() {
         }
     }, [token]);
 
+    const fetchRoles = useCallback(async()=>{
+        try{
+            const response = await axios.get('http://localhost:3600/api/auth/roles',{
+                headers: {'Authorization': `Bearer ${token}`}
+            });
+            setRoles(response.data.roles);
+        }catch(err){
+            Swal.fire('Error','Error al obtener roles','error');
+        }
+    },[token]);
+
     useEffect(() => {
         fetchUsers();
-    }, [fetchUsers]);
+        fetchRoles();
+    }, [fetchUsers,fetchRoles]);
 
     const handleRegister = async (e) => {
         e.preventDefault();
@@ -98,6 +112,19 @@ function RegistrarUsuarios() {
         setIsEditing(false);
         setIsCreating(false);
     };
+    
+    const handleAssignRole = async (userId) =>{
+        try{
+            await axios.post('http://localhost:3600/api/auth/assign-role',
+                {userId, roleName:selectedRole},
+                {headers: {'Authorization':`Bearer ${token}` }}
+            );
+            Swal.fire('Exito', 'Rol asignado correctamente', 'success');
+            fetchUsers();
+        }catch(err){
+            Swal.fire('Error', 'Error al asignar rol', 'error');
+        }
+    };
 
     const filteredUsers = users.filter(user =>
         user.username.toLowerCase().includes(searchTerm.toLowerCase())
@@ -125,6 +152,7 @@ function RegistrarUsuarios() {
                         <tr>
                             <th className="px-4 py-2">ID</th>
                             <th className="px-4 py-2">Nombre de usuario</th>
+                            <th classNmae="px-4 py-2">Roles</th>
                             <th className="px-4 py-2">Acciones</th>
                         </tr>
                     </thead>
@@ -133,6 +161,7 @@ function RegistrarUsuarios() {
                             <tr key={user.id} className="border-b hover:bg-gray-50">
                                 <td className="px-4 py-2">{user.id}</td>
                                 <td className="px-4 py-2">{user.username}</td>
+                                <td className="px-4 py-2">{user.roles.join(',')}</td>
                                 <td className="px-4 py-2">
                                     <button
                                         onClick={() => handleEdit(user)}
@@ -212,6 +241,33 @@ function RegistrarUsuarios() {
                     </form>
                 </div>
             )}
+            {/* Formulario para asignar roles*/ }
+            <div className = "mt-4 bg-white shadow/md rouded px-8 pt-6 pb-8 mb-4">
+                <h3 className = "text-xl font-bold mb-4">Asignar Rol</h3>
+                <div className="mb-4">
+                    <label className = "block text-gray-700 text-sm font-bold mb-2" htmlFor='role'>
+                        Rol:
+                    </label>
+                    <select
+                        id = "role"
+                        value = {selectedRole}
+                        onChange = {(e) => setSelectedRole(e.target.value)}
+                        className = "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    >
+                     <option value="">Seleccione un rol</option>
+                        {roles.map((role) => (
+                            <option key={role.id} value={role.name}>{role.name}</option>
+                        ))}
+                    </select>
+                </div>
+                <button
+                    onClick={() => handleAssignRole(userId)}
+                    className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                    disabled={!selectedRole || !userId}
+                >
+                    Asignar Rol
+                </button>
+            </div>
         </div>
     );
 }

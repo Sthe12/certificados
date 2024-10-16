@@ -13,6 +13,6 @@ router.delete('/users/:id',authMiddleware.verifyToken,authorizationMiddleware.ha
 router.post('/logout', authController.logout);
 router.post('/assign-role', authMiddleware.verifyToken,authorizationMiddleware.hasPermission('manage_role') , authController.assignRole);
 router.post('/remove-role',authMiddleware.verifyToken,authorizationMiddleware.hasPermission('manage_users') , authController.removeRole);
-
+router.get('/roles', authMiddleware.verifyToken, authorizationMiddleware.hasPermission('manage_roles'), authController.getAllRoles);
 
 module.exports = router;

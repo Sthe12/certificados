@@ -109,7 +109,14 @@ const User = {
         if (role.length === 0) throw new Error('Role not found');
         
         await pool.query('DELETE FROM user_roles WHERE user_id = ? AND role_id = ?', [userId, role[0].id]);
+    },
+
+    // Obtener todos los roles
+    async getAllRoles() {
+        const [rows] = await pool.query('SELECT * FROM roles');
+        return rows;
     }
+
 
 };
 

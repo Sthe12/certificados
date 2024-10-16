@@ -139,7 +139,18 @@ const authController = {
         }catch(error){
             res.status(500).json({message: 'Error al remover el rol', error: error.message});
         }
-    }
+    },
+
+     // Obtener todos los roles
+     async getAllRoles(req, res) {
+        try {
+            const roles = await User.getAllRoles();
+            res.status(200).json({ roles });
+        } catch (error) {
+            console.error('Error al obtener roles:', error);
+            res.status(500).json({ message: 'Error al obtener roles', error: error.message });
+        }
+    },
 };
 
 module.exports = authController;
