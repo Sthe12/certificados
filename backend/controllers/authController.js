@@ -43,9 +43,16 @@ const authController = {
             if (!isPasswordValid) {
                 return res.status(401).json({ message: 'Contraseña incorrecta' });
             }
-    
-            const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-            return res.status(200).json({ message: 'Login exitoso', token, user: { id: user.id, username: user.username } });
+            
+            const roles = await User.getUserRoles(user.id);
+            const permissions = await User.getUserPermissions(user.id);
+
+            const token = jwt.sign(
+                { userId: user.id, roles, permissions },
+                process.env.JWT_SECRET,
+                { expiresIn: '5h' }
+            );
+            return res.status(200).json({ message: 'Login exitoso', token, user: { id: user.id, username: user.username, roles, permissions } });
         } catch (error) {
             console.error('Error en login:', error);
             return res.status(500).json({ message: 'Error al iniciar sesión', error: error.message });
@@ -109,6 +116,28 @@ const authController = {
         } catch (error) {
             console.error('Error en logout:', error);
             return res.status(500).json({ message: 'Error al hacer logout', error: error.message });
+        }
+    },
+
+    //Funcion para asignar rol a un usuario siendo admin
+    async assignRole(req, res){
+        try{
+            const {userId, roleName} = req.body;
+            await User.assignRole(userId,roleName);
+            res.status(200).json({message: 'Rol asignado correctamente'});
+        }catch(error){
+            res.status(500).json({message: 'Error al asignar el rol', error: error.message});
+        }
+    },
+
+    //Funcion para remover el rol de un usuariuo siendo admin
+    async removeRole(req, res){
+        try{
+            const {userId, roleName} = req.body;
+            await User.removeRole(userId,roleName);
+            res.status(200).json({message: 'Rol removido correctamente'});
+        }catch(error){
+            res.status(500).json({message: 'Error al remover el rol', error: error.message});
         }
     }
 };

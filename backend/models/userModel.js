@@ -83,7 +83,7 @@ const User = {
         return rows.map(row => row.name);
     },
 
-    // Obtener permisos de un usuario
+    // Obtencion de permisos de usuaurio
     async getUserPermissions(userId) {
         const [rows] = await pool.query(
             'SELECT DISTINCT p.name FROM permissions p ' +
@@ -95,7 +95,7 @@ const User = {
         return rows.map(row => row.name);
     },
 
-    // Asignar rol a un usuario
+    // Esta funcion es para asignar los roles 
     async assignRole(userId, roleName) {
         const [role] = await pool.query('SELECT id FROM roles WHERE name = ?', [roleName]);
         if (role.length === 0) throw new Error('Role not found');
@@ -103,7 +103,7 @@ const User = {
         await pool.query('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)', [userId, role[0].id]);
     },
 
-    // Remover rol de un usuario
+    // Esta es una funcion para remover los permisos
     async removeRole(userId, roleName) {
         const [role] = await pool.query('SELECT id FROM roles WHERE name = ?', [roleName]);
         if (role.length === 0) throw new Error('Role not found');
