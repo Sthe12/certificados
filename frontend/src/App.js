@@ -8,9 +8,11 @@ import TalentoRRHH from './Componentes/TalentoRRHH';
 import Certificados from './Componentes/Certificados';
 import InventarioTIC from './Componentes/InventarioTIC';
 import RegistrarUsuario from './Componentes/RegistrarUsuarios';
+import { AuthProvider } from './context/AuthContext';
 
 function App() {
   return (
+    <AuthProvider>
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
@@ -21,6 +23,7 @@ function App() {
         <Route path="/registrar-usuarios" element={<RegistrarUsuario />} /> 
       </Routes>
     </Router>
+    </AuthProvider>
   );
 }
 

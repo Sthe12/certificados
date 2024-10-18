@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+/*import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { FaEdit, FaTrash, FaUserPlus, FaSave, FaTimes } from 'react-icons/fa';
@@ -134,7 +134,7 @@ function RegistrarUsuarios() {
         <div className="container mx-auto p-4">
             <h2 className="text-2xl font-bold mb-4">Gestión de Usuarios</h2>
 
-            {/* Barra de búsqueda */}
+            {/* Barra de búsqueda 
             <div className="mb-4">
                 <input
                     type="text"
@@ -145,7 +145,7 @@ function RegistrarUsuarios() {
                 />
             </div>
 
-            {/* Tabla de usuarios */}
+            {/* Tabla de usuarios 
             <div className="overflow-x-auto">
                 <table className="min-w-full bg-white">
                     <thead className="bg-gray-100">
@@ -184,7 +184,7 @@ function RegistrarUsuarios() {
                 </table>
             </div>
 
-            {/* Botón para crear un nuevo usuario */}
+            {/* Botón para crear un nuevo usuario 
             <button
                 onClick={() => { setIsCreating(true); setIsEditing(false); }}
                 className="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded flex items-center"
@@ -192,7 +192,7 @@ function RegistrarUsuarios() {
                 <FaUserPlus className="mr-2" /> Crear Usuario
             </button>
 
-            {/* Formulario de creación/edición */}
+            {/* Formulario de creación/edición 
             {(isCreating || isEditing) && (
                 <div className="mt-4 bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
                     <h3 className="text-xl font-bold mb-4">{isEditing ? 'Editar Usuario' : 'Crear Usuario'}</h3>
@@ -241,7 +241,7 @@ function RegistrarUsuarios() {
                     </form>
                 </div>
             )}
-            {/* Formulario para asignar roles*/ }
+            {/* Formulario para asignar roles
             <div className = "mt-4 bg-white shadow/md rouded px-8 pt-6 pb-8 mb-4">
                 <h3 className = "text-xl font-bold mb-4">Asignar Rol</h3>
                 <div className="mb-4">
@@ -271,5 +271,115 @@ function RegistrarUsuarios() {
         </div>
     );
 }
+
+export default RegistrarUsuarios;*/
+
+import React, { useState, useEffect } from 'react';
+import { getAllUsers, deleteUser } from '../Services/userService';
+import { getAllRoles, assignRoleToUser } from '../Services/rolePermissionService';
+
+const RegistrarUsuarios = () => {
+  const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchUsers();
+    fetchRoles();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await getAllUsers();
+      setUsers(response.data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setError(`Failed to fetch users: ${error.message}`);
+      setLoading(false);
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const response = await getAllRoles();
+      setRoles(response);
+    } catch (error) {
+      setError(`Error al obtener roles: ${error.message}`);
+    }
+  };
+  
+  const handleDeleteUser = async (userId) => {
+    try {
+      await deleteUser(userId);
+      setUsers(users.filter(user => user.id !== userId));
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      setError(`Failed to delete user: ${error.message}`);
+    }
+  };
+
+  const handleAssignRole = async (userId, roleId) => {
+    try {
+      await assignRoleToUser(userId, roleId);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error assigning role:', error);
+      setError(`Failed to assign role: ${error.message}`);
+    }
+  };
+
+  if (loading) return <div className="text-center py-4">Loading...</div>;
+  if (error) return <div className="text-center py-4 text-red-600">Error: {error}</div>;
+
+  return (
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <h1 className="text-2xl font-semibold mb-4">Registro Usuario</h1>
+      {users.length === 0 ? (
+        <p className="text-center py-4">No users found.</p>
+      ) : (
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {users.map(user => (
+              <tr key={user.id}>
+                <td className="px-6 py-4 whitespace-nowrap">{`${user.firstName} ${user.lastName}`}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <select
+                    onChange={(e) => handleAssignRole(user.id, e.target.value)}
+                    className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  >
+                    <option value="">Assign Role</option>
+                    {roles.map(role => (
+                      <option key={role.id} value={role.id}>{role.name}</option>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <button
+                    onClick={() => handleDeleteUser(user.id)}
+                    className="text-red-600 hover:text-red-900"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+};
 
 export default RegistrarUsuarios;

@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/authRoutes');
+const RolPermisoRoute = require('./routes/RolPermisoRoutes');
 const User = require('./models/userModel');
 
 dotenv.config();
@@ -18,7 +19,7 @@ app.use(cors({
 app.use(express.json());
 
 // Rutas
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authRoutes, RolPermisoRoute);
 
 const PORT = process.env.PORT || 3600;
 
