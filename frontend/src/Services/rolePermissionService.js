@@ -10,7 +10,7 @@ const handleApiError = (error, operation) => {
 
 export const createRole = async (name) => {
   try {
-    const response = await api.post('/role', { name });
+    const response = await api.post('/roles', { name });
     return response.data;
   } catch (error) {
     handleApiError(error, 'crear rol');

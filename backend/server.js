@@ -1,9 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
+const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
-const RolPermisoRoute = require('./routes/RolPermisoRoutes');
-const User = require('./models/userModel');
 
 dotenv.config();
 
@@ -19,24 +17,15 @@ app.use(cors({
 app.use(express.json());
 
 // Rutas
-app.use('/api/auth', authRoutes, RolPermisoRoute);
+app.use('/api/users', userRoutes);
+app.use('/api/auth', authRoutes);
 
 const PORT = process.env.PORT || 3600;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
-async function startServer() {
-  try {
-    const isConnected = await User.testConnection();
-    if (isConnected) {
-      app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
-    } else {
-      console.error('No se pudo establecer la conexión a la base de datos. El servidor no se iniciará.');
-      process.exit(1);
-    }
-  } catch (error) {
-    console.error('Error al iniciar el servidor:', error);
-    process.exit(1);
-  }
-}
 
-startServer();
+
+
 

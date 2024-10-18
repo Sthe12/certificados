@@ -1,12 +1,19 @@
 const jwt = require('jsonwebtoken');
 
-module.exports = (req, res, next) => {
-  try {
-    const token = req.headers.authorization.split(' ')[1];
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-    req.userData = { userId: decodedToken.userId };
-    next();
-  } catch (error) {
-    return res.status(401).json({ message: 'Autenticación fallida' });
-  }
+const verifyToken = (req, res, next) => {
+    const token = req.header('Authorization').replace('Bearer ', '');
+
+    if (!token) {
+        return res.status(401).json({ message: 'No hay token, permiso denegado' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, 'secretkey');
+        req.user = decoded;
+        next();
+    } catch (error) {
+        res.status(401).json({ message: 'Token no válido' });
+    }
 };
+
+module.exports = { verifyToken };

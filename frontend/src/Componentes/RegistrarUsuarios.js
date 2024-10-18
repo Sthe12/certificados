@@ -279,7 +279,7 @@ import { getAllUsers, deleteUser } from '../Services/userService';
 import { getAllRoles, assignRoleToUser } from '../Services/rolePermissionService';
 
 const RegistrarUsuarios = () => {
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState(null);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -304,8 +304,10 @@ const RegistrarUsuarios = () => {
 
   const fetchRoles = async () => {
     try {
+      setLoading(true);
       const response = await getAllRoles();
-      setRoles(response);
+      setRoles(response.data);
+      setLoading(false);
     } catch (error) {
       setError(`Error al obtener roles: ${error.message}`);
     }
@@ -314,7 +316,7 @@ const RegistrarUsuarios = () => {
   const handleDeleteUser = async (userId) => {
     try {
       await deleteUser(userId);
-      setUsers(users.filter(user => user.id !== userId));
+      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
     } catch (error) {
       console.error('Error deleting user:', error);
       setError(`Failed to delete user: ${error.message}`);
@@ -333,7 +335,8 @@ const RegistrarUsuarios = () => {
 
   if (loading) return <div className="text-center py-4">Loading...</div>;
   if (error) return <div className="text-center py-4 text-red-600">Error: {error}</div>;
-
+  if (!users) return <div className="text-center py-4">No user data available.</div>;
+  if (!roles) return <div className="text-center py-4">No user data available.</div>;
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
       <h1 className="text-2xl font-semibold mb-4">Registro Usuario</h1>
