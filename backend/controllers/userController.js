@@ -16,9 +16,17 @@ exports.registerUser = async (req, res) => {
 };
 
 exports.getUsers = async (req, res) => {
-    const query = 'SELECT id, nombre, apellido, email, rol, fecha_creacion FROM users';
-    const [rows] = await db.query(query);
-    res.json(rows);
+    try {
+        const query = `
+            SELECT u.*, r.id as rol_id, r.rol as rol_nombre
+            FROM users u
+            INNER JOIN roles r ON u.rol = r.rol
+        `;
+        const [rows] = await db.query(query);
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener usuarios' });
+    }
 };
 // Actualizar usuario por ID
 exports.updateUser = async (req, res) => {

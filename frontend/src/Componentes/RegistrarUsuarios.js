@@ -1,54 +1,56 @@
-/*import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import { FaEdit, FaTrash, FaUserPlus, FaSave, FaTimes } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaUserPlus, FaSave, FaTimes, FaCog } from 'react-icons/fa';
 
 function RegistrarUsuarios() {
-    const [username, setUsername] = useState('');
+    const [nombre, setNombre] = useState('');
+    const [apellido, setApellido] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [rol, setRol] = useState('');
     const [userId, setUserId] = useState(null);
     const [users, setUsers] = useState([]);
     const [isCreating, setIsCreating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [isConfiguring, setIsConfiguring] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [roles, setRoles] = useState([]);
-    const [selectedRole, setSelectedRole] = useState('');
 
     const token = localStorage.getItem('token');
 
+    // Permisos disponibles
+    const permisosDisponibles = [
+        'user_management',
+        'project_management',
+        'view_technical_docs',
+        'robot_development',
+        'view_reports',
+        'robot_maintenance',
+        'view_inventory'
+    ];
+
     const fetchUsers = useCallback(async () => {
         try {
-            const response = await axios.get('http://localhost:3600/api/auth/users', {
+            const response = await axios.get('http://localhost:3600/api/users/user', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            setUsers(response.data.users);
+            setUsers(response.data); // Assuming response.data contains the array of users
         } catch (err) {
             Swal.fire('Error', 'Error al obtener usuarios', 'error');
         }
     }, [token]);
 
-    const fetchRoles = useCallback(async()=>{
-        try{
-            const response = await axios.get('http://localhost:3600/api/auth/roles',{
-                headers: {'Authorization': `Bearer ${token}`}
-            });
-            setRoles(response.data.roles);
-        }catch(err){
-            Swal.fire('Error','Error al obtener roles','error');
-        }
-    },[token]);
-
     useEffect(() => {
         fetchUsers();
-        fetchRoles();
-    }, [fetchUsers,fetchRoles]);
+    }, [fetchUsers]);
 
     const handleRegister = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post('http://localhost:3600/api/auth/register', 
-                { username, password },
-                { headers: { 'Content-Type': 'application/json' } }
+            const response = await axios.post('http://localhost:3600/api/users/register', 
+                { nombre, apellido, email, password, rol },
+                { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } }
             );
             Swal.fire('Éxito', `Usuario registrado exitosamente (ID: ${response.data.userId})`, 'success');
             resetForm();
@@ -59,7 +61,10 @@ function RegistrarUsuarios() {
     };
 
     const handleEdit = (user) => {
-        setUsername(user.username);
+        setNombre(user.nombre);
+        setApellido(user.apellido);
+        setEmail(user.email);
+        setRol(user.rol);
         setUserId(user.id);
         setIsEditing(true);
         setIsCreating(false);
@@ -68,8 +73,8 @@ function RegistrarUsuarios() {
     const handleUpdate = async (e) => {
         e.preventDefault();
         try {
-            await axios.put(`http://localhost:3600/api/auth/users/${userId}`,
-                { username, password },
+            await axios.put(`http://localhost:3600/api/users/update-user/${userId}`,
+                { nombre, apellido, email, rol },
                 { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
             );
             Swal.fire('Éxito', `Usuario ${userId} actualizado exitosamente`, 'success');
@@ -93,7 +98,7 @@ function RegistrarUsuarios() {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    await axios.delete(`http://localhost:3600/api/auth/users/${id}`, {
+                    await axios.delete(`http://localhost:3600/api/users/delete-user/${id}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     Swal.fire('Eliminado', `Usuario ${id} eliminado exitosamente`, 'success');
@@ -105,36 +110,77 @@ function RegistrarUsuarios() {
         });
     };
 
-    const resetForm = () => {
-        setUsername('');
-        setPassword('');
-        setUserId(null);
-        setIsEditing(false);
-        setIsCreating(false);
-    };
-    
-    const handleAssignRole = async (userId) =>{
-        try{
-            await axios.post('http://localhost:3600/api/auth/assign-role',
-                {userId, roleName:selectedRole},
-                {headers: {'Authorization':`Bearer ${token}` }}
-            );
-            Swal.fire('Exito', 'Rol asignado correctamente', 'success');
-            fetchUsers();
-        }catch(err){
-            Swal.fire('Error', 'Error al asignar rol', 'error');
+    // Función para configurar permisos de un usuario
+    const handleConfigurarPermisos = async (user) => {
+        console.log(user); // Verifica si el campo rol_id está presente
+        try {
+            // Obtener los permisos actuales del rol seleccionado
+            const response = await axios.get(`http://localhost:3600/api/rol-perm/roles/${user.rol_id}/permisos`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            setSelectedUser({
+                ...user,
+                permisos: response.data.permisos.map(p => p.nombre_permiso) // Asigna los permisos del rol actual
+            });
+
+            setIsConfiguring(true);
+        } catch (err) {
+            Swal.fire('Error', 'Error al obtener los permisos del rol', 'error');
         }
     };
 
+    const togglePermiso = (permiso) => {
+        if (selectedUser.permisos.includes(permiso)) {
+            setSelectedUser({
+                ...selectedUser,
+                permisos: selectedUser.permisos.filter(p => p !== permiso)
+            });
+        } else {
+            setSelectedUser({
+                ...selectedUser,
+                permisos: [...selectedUser.permisos, permiso]
+            });
+        }
+    };
+
+    const savePermisos = async () => {
+        try {
+            await axios.put(`http://localhost:3600/api/rol-perm/roles/${selectedUser.rol_id}/permisos`, 
+                { permisos: selectedUser.permisos },
+                { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+            );
+            Swal.fire('Éxito', `Permisos del rol actualizados exitosamente`, 'success');
+            setIsConfiguring(false);
+            fetchUsers();
+        } catch (err) {
+            Swal.fire('Error', 'Error al actualizar permisos', 'error');
+        }
+    };
+
+    const resetForm = () => {
+        setNombre('');
+        setApellido('');
+        setEmail('');
+        setPassword('');
+        setRol('');
+        setUserId(null);
+        setIsEditing(false);
+        setIsCreating(false);
+        setIsConfiguring(false);
+    };
+
     const filteredUsers = users.filter(user =>
-        user.username.toLowerCase().includes(searchTerm.toLowerCase())
+        user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
         <div className="container mx-auto p-4">
             <h2 className="text-2xl font-bold mb-4">Gestión de Usuarios</h2>
 
-            {/* Barra de búsqueda 
+            {/* Campo de búsqueda */}
             <div className="mb-4">
                 <input
                     type="text"
@@ -145,14 +191,24 @@ function RegistrarUsuarios() {
                 />
             </div>
 
-            {/* Tabla de usuarios 
-            <div className="overflow-x-auto">
+            {/* Botón para crear usuarios */}
+            <button
+                onClick={() => { setIsCreating(true); setIsEditing(false); setIsConfiguring(false); }}
+                className="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded flex items-center"
+            >
+                <FaUserPlus className="mr-2" /> Crear Usuario
+            </button>
+
+            {/* Tabla de usuarios */}
+            <div className="overflow-x-auto mt-4">
                 <table className="min-w-full bg-white">
                     <thead className="bg-gray-100">
                         <tr>
                             <th className="px-4 py-2">ID</th>
-                            <th className="px-4 py-2">Nombre de usuario</th>
-                            <th classNmae="px-4 py-2">Roles</th>
+                            <th className="px-4 py-2">Nombre</th>
+                            <th className="px-4 py-2">Apellido</th>
+                            <th className="px-4 py-2">Email</th>
+                            <th className="px-4 py-2">Rol</th>
                             <th className="px-4 py-2">Acciones</th>
                         </tr>
                     </thead>
@@ -160,22 +216,28 @@ function RegistrarUsuarios() {
                         {filteredUsers.map((user) => (
                             <tr key={user.id} className="border-b hover:bg-gray-50">
                                 <td className="px-4 py-2">{user.id}</td>
-                                <td className="px-4 py-2">{user.username}</td>
-                                <td className="px-4 py-2">{user.roles.join(',')}</td>
+                                <td className="px-4 py-2">{user.nombre}</td>
+                                <td className="px-4 py-2">{user.apellido}</td>
+                                <td className="px-4 py-2">{user.email}</td>
+                                <td className="px-4 py-2">{user.rol}</td>
                                 <td className="px-4 py-2">
                                     <button
                                         onClick={() => handleEdit(user)}
                                         className="mr-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded"
-                                        aria-label="Editar usuario"
                                     >
                                         <FaEdit />
                                     </button>
                                     <button
                                         onClick={() => handleDelete(user.id)}
-                                        className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
-                                        aria-label="Eliminar usuario"
+                                        className="mr-2 bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
                                     >
                                         <FaTrash />
+                                    </button>
+                                    <button
+                                        onClick={() => handleConfigurarPermisos(user)}
+                                        className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-1 px-2 rounded"
+                                    >
+                                        <FaCog /> Configurar Permisos
                                     </button>
                                 </td>
                             </tr>
@@ -184,28 +246,46 @@ function RegistrarUsuarios() {
                 </table>
             </div>
 
-            {/* Botón para crear un nuevo usuario 
-            <button
-                onClick={() => { setIsCreating(true); setIsEditing(false); }}
-                className="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded flex items-center"
-            >
-                <FaUserPlus className="mr-2" /> Crear Usuario
-            </button>
-
-            {/* Formulario de creación/edición 
+            {/* Formulario para crear o editar usuarios */}
             {(isCreating || isEditing) && (
                 <div className="mt-4 bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
                     <h3 className="text-xl font-bold mb-4">{isEditing ? 'Editar Usuario' : 'Crear Usuario'}</h3>
                     <form onSubmit={isEditing ? handleUpdate : handleRegister}>
                         <div className="mb-4">
-                            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="username">
-                                Usuario:
+                            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="nombre">
+                                Nombre:
                             </label>
                             <input
-                                id="username"
+                                id="nombre"
                                 type="text"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                value={nombre}
+                                onChange={(e) => setNombre(e.target.value)}
+                                required
+                                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="apellido">
+                                Apellido:
+                            </label>
+                            <input
+                                id="apellido"
+                                type="text"
+                                value={apellido}
+                                onChange={(e) => setApellido(e.target.value)}
+                                required
+                                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
+                                Email:
+                            </label>
+                            <input
+                                id="email"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 required
                                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                             />
@@ -219,9 +299,25 @@ function RegistrarUsuarios() {
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                required
+                                required={!isEditing} // El password solo es requerido en la creación
                                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
                             />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="rol">
+                                Rol:
+                            </label>
+                            <select
+                                id="rol"
+                                value={rol}
+                                onChange={(e) => setRol(e.target.value)}
+                                required
+                                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            >
+                                <option value="">Seleccionar Rol</option>
+                                <option value="admin">Admin</option>
+                                <option value="user">User</option>
+                            </select>
                         </div>
                         <div className="flex items-center justify-between">
                             <button
@@ -241,148 +337,40 @@ function RegistrarUsuarios() {
                     </form>
                 </div>
             )}
-            {/* Formulario para asignar roles
-            <div className = "mt-4 bg-white shadow/md rouded px-8 pt-6 pb-8 mb-4">
-                <h3 className = "text-xl font-bold mb-4">Asignar Rol</h3>
-                <div className="mb-4">
-                    <label className = "block text-gray-700 text-sm font-bold mb-2" htmlFor='role'>
-                        Rol:
-                    </label>
-                    <select
-                        id = "role"
-                        value = {selectedRole}
-                        onChange = {(e) => setSelectedRole(e.target.value)}
-                        className = "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    >
-                     <option value="">Seleccione un rol</option>
-                        {roles.map((role) => (
-                            <option key={role.id} value={role.name}>{role.name}</option>
+
+            {/* Modal para configurar permisos */}
+            {isConfiguring && selectedUser && (
+                <div className="modal bg-white p-6 rounded shadow-lg">
+                    <h3 className="text-xl font-bold mb-4">Configurar Permisos para {selectedUser.nombre}</h3>
+                    <div className="permissions-list">
+                        {permisosDisponibles.map((permiso) => (
+                            <label key={permiso} className="block mb-2">
+                                <input
+                                    type="checkbox"
+                                    checked={selectedUser.permisos && selectedUser.permisos.includes(permiso)}
+                                    onChange={() => togglePermiso(permiso)}
+                                    className="mr-2"
+                                />
+                                {permiso.replace('_', ' ').toUpperCase()}
+                            </label>
                         ))}
-                    </select>
+                    </div>
+                    <button
+                        onClick={savePermisos}
+                        className="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                    >
+                        <FaSave className="mr-2" /> Guardar Permisos
+                    </button>
+                    <button
+                        onClick={() => setIsConfiguring(false)}
+                        className="mt-4 ml-4 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                    >
+                        <FaTimes className="mr-2" /> Cancelar
+                    </button>
                 </div>
-                <button
-                    onClick={() => handleAssignRole(userId)}
-                    className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                    disabled={!selectedRole || !userId}
-                >
-                    Asignar Rol
-                </button>
-            </div>
+            )}
         </div>
     );
 }
-
-export default RegistrarUsuarios;*/
-
-import React, { useState, useEffect } from 'react';
-import { getAllUsers, deleteUser } from '../Services/userService';
-import { getAllRoles, assignRoleToUser } from '../Services/rolePermissionService';
-
-const RegistrarUsuarios = () => {
-  const [users, setUsers] = useState(null);
-  const [roles, setRoles] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    fetchUsers();
-    fetchRoles();
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const response = await getAllUsers();
-      setUsers(response.data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      setError(`Failed to fetch users: ${error.message}`);
-      setLoading(false);
-    }
-  };
-
-  const fetchRoles = async () => {
-    try {
-      setLoading(true);
-      const response = await getAllRoles();
-      setRoles(response.data);
-      setLoading(false);
-    } catch (error) {
-      setError(`Error al obtener roles: ${error.message}`);
-    }
-  };
-  
-  const handleDeleteUser = async (userId) => {
-    try {
-      await deleteUser(userId);
-      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      setError(`Failed to delete user: ${error.message}`);
-    }
-  };
-
-  const handleAssignRole = async (userId, roleId) => {
-    try {
-      await assignRoleToUser(userId, roleId);
-      fetchUsers();
-    } catch (error) {
-      console.error('Error assigning role:', error);
-      setError(`Failed to assign role: ${error.message}`);
-    }
-  };
-
-  if (loading) return <div className="text-center py-4">Loading...</div>;
-  if (error) return <div className="text-center py-4 text-red-600">Error: {error}</div>;
-  if (!users) return <div className="text-center py-4">No user data available.</div>;
-  if (!roles) return <div className="text-center py-4">No user data available.</div>;
-  return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-      <h1 className="text-2xl font-semibold mb-4">Registro Usuario</h1>
-      {users.length === 0 ? (
-        <p className="text-center py-4">No users found.</p>
-      ) : (
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {users.map(user => (
-              <tr key={user.id}>
-                <td className="px-6 py-4 whitespace-nowrap">{`${user.firstName} ${user.lastName}`}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <select
-                    onChange={(e) => handleAssignRole(user.id, e.target.value)}
-                    className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  >
-                    <option value="">Assign Role</option>
-                    {roles.map(role => (
-                      <option key={role.id} value={role.id}>{role.name}</option>
-                    ))}
-                  </select>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => handleDeleteUser(user.id)}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-};
 
 export default RegistrarUsuarios;
