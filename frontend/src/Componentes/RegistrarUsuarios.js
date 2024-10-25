@@ -111,25 +111,26 @@ function RegistrarUsuarios() {
     };
 
     // Función para configurar permisos de un usuario
-const handleConfigurarPermisos = async (user) => {
-    console.log('Rol del usuario seleccionado:', user.rol);  // Verificar si el nombre del rol es correcto
-
-    try {
-        const response = await axios.get(`http://localhost:3600/api/rol-perm/roles/${user.rol}/permisos`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        setSelectedUser({
-            ...user,
-            permisos: response.data.permisos.map(p => p.nombre_permiso) // Asigna los permisos del rol
-        });
-
-        setIsConfiguring(true);
-    } catch (err) {
-        console.error('Error en el frontend:', err.response);  // Imprimir el error detallado
-        Swal.fire('Error', 'Error al obtener los permisos del rol', 'error');
-    }
-};
+    const handleConfigurarPermisos = async (user) => {
+        console.log('Rol del usuario seleccionado:', user.rol); // Verificar el rol del usuario seleccionado
+    
+        try {
+            const response = await axios.get(`http://localhost:3600/api/rol-perm/roles/${user.id}/permisos`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            console.log('Permisos obtenidos:', response.data.permisos);
+            setSelectedUser({
+                ...user,
+                permisos: response.data.permisos.map(p => p.nombre_permiso) // Asigna los permisos del rol
+            });
+    
+            setIsConfiguring(true);
+        } catch (err) {
+            console.error('Error en el frontend:', err.response); // Mostrar error detallado
+            Swal.fire('Error', 'Error al obtener los permisos del rol', 'error');
+        }
+    };
+    
 
 
     const togglePermiso = (permiso) => {
@@ -148,7 +149,7 @@ const handleConfigurarPermisos = async (user) => {
 
     const savePermisos = async () => {
         try {
-            await axios.put(`http://localhost:3600/api/rol-perm/roles/${selectedUser.rol_id}/permisos`, 
+            await axios.put(`http://localhost:3600/api/rol-perm/roles/${selectedUser.id}/permisos`, 
                 { permisos: selectedUser.permisos },
                 { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
             );
@@ -340,35 +341,83 @@ const handleConfigurarPermisos = async (user) => {
                 </div>
             )}
 
-            {/* Modal para configurar permisos */}
-            {isConfiguring && selectedUser && (
-                <div className="modal bg-white p-6 rounded shadow-lg">
-                    <h3 className="text-xl font-bold mb-4">Configurar Permisos para {selectedUser.nombre}</h3>
-                    <div className="permissions-list">
-                        {permisosDisponibles.map((permiso) => (
-                            <label key={permiso} className="block mb-2">
-                                <input
-                                    type="checkbox"
-                                    checked={selectedUser.permisos && selectedUser.permisos.includes(permiso)}
-                                    onChange={() => togglePermiso(permiso)}
-                                    className="mr-2"
-                                />
-                                {permiso.replace('_', ' ').toUpperCase()}
-                            </label>
-                        ))}
+{/* Modal de Configuración de Permisos */}
+{isConfiguring && selectedUser && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold">
+                                Configurar Permisos para {selectedUser.nombre}
+                            </h3>
+                            <button
+                                onClick={() => setIsConfiguring(false)}
+                                className="text-gray-500 hover:text-gray-700"
+                            >
+                                <FaTimes size={24} />
+                            </button>
+                        </div>
+
+                        {!selectedUser.permisos ? (
+                            <div className="flex justify-center items-center h-40">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="mb-4">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Permiso
+                                                </th>
+                                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Estado
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {permisosDisponibles.map((permiso) => (
+                                                <tr key={permiso} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className="text-sm font-medium text-gray-900">
+                                                            {permiso.split('_').map(word => 
+                                                                word.charAt(0).toUpperCase() + word.slice(1)
+                                                            ).join(' ')}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                        <label className="inline-flex items-center cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="form-checkbox h-5 w-5 text-blue-600 rounded"
+                                                                checked={selectedUser.permisos.includes(permiso)}
+                                                                onChange={() => togglePermiso(permiso)}
+                                                            />
+                                                        </label>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="flex justify-end space-x-4 mt-6">
+                                    <button
+                                        onClick={() => setIsConfiguring(false)}
+                                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md flex items-center"
+                                    >
+                                        <FaTimes className="mr-2" /> Cancelar
+                                    </button>
+                                    <button
+                                        onClick={savePermisos}
+                                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center"
+                                    >
+                                        <FaSave className="mr-2" /> Guardar Cambios
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
-                    <button
-                        onClick={savePermisos}
-                        className="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-                    >
-                        <FaSave className="mr-2" /> Guardar Permisos
-                    </button>
-                    <button
-                        onClick={() => setIsConfiguring(false)}
-                        className="mt-4 ml-4 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-                    >
-                        <FaTimes className="mr-2" /> Cancelar
-                    </button>
                 </div>
             )}
         </div>

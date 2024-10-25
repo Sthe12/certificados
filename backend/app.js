@@ -22,4 +22,5 @@ app.use((req,res,next)=>{
 app.use('/api/user',userRoutes);
 app.use('/api/auth',authRoutes);
 app.use('/api/rol-perm', rolPermisoRoutes);
+
 module.exports=app;

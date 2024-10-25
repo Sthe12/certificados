@@ -4,16 +4,16 @@ const db = require('../config/database');
 
 // Actualizar los permisos de un rol
 exports.updatePermissions = async (req, res) => {
-    const { rol_id } = req.params;
+    const { role_id } = req.params;
     const { permisos } = req.body; // Array de permisos que se asignarán al rol
 
     try {
         // Primero eliminamos los permisos actuales del rol
-        await db.query('DELETE FROM rol_permisos WHERE rol_id = ?', [rol_id]);
+        await db.query('DELETE FROM rol_permisos WHERE rol_id = ?', [role_id]);
 
         // Insertamos los nuevos permisos
         for (let permiso_id of permisos) {
-            await db.query('INSERT INTO rol_permisos (rol_id, permiso_id) VALUES (?, ?)', [rol_id, permiso_id]);
+            await db.query('INSERT INTO rol_permisos (rol_id, permiso_id) VALUES (?, ?)', [role_id, permiso_id]);
         }
 
         res.status(200).json({ message: 'Permisos actualizados correctamente' });
@@ -23,9 +23,9 @@ exports.updatePermissions = async (req, res) => {
 };
 
 exports.getRolePermissions = async (req, res) => {
-    const { role } = req.params;  // Aquí recibes el nombre del rol
+    const { role_id } = req.params;  // Aquí recibes el nombre del rol
 
-    console.log('Nombre del rol recibido:', role);  // Verificar si el rol se recibe correctamente
+    console.log('Nombre del rol recibido:', role_id);  // Verificar si el rol se recibe correctamente
 
     try {
         const [permisos] = await db.query(`
@@ -33,8 +33,8 @@ exports.getRolePermissions = async (req, res) => {
             FROM permisos p
             INNER JOIN rol_permisos rp ON p.id = rp.permiso_id
             INNER JOIN roles r ON rp.rol_id = r.id
-            WHERE r.role = ?
-        `, [role]);  // Usar el nombre del rol para la consulta
+            WHERE r.id = ?
+        `, [role_id]);  // Usar el nombre del rol para la consulta
 
         console.log('Permisos obtenidos:', permisos);  // Verificar si se están obteniendo permisos correctamente
 
