@@ -23,7 +23,9 @@ exports.updatePermissions = async (req, res) => {
 };
 
 exports.getRolePermissions = async (req, res) => {
-    const { rol_id } = req.params;
+    const { role } = req.params;  // Aquí recibes el nombre del rol
+
+    console.log('Nombre del rol recibido:', role);  // Verificar si el rol se recibe correctamente
 
     try {
         const [permisos] = await db.query(`
@@ -31,13 +33,17 @@ exports.getRolePermissions = async (req, res) => {
             FROM permisos p
             INNER JOIN rol_permisos rp ON p.id = rp.permiso_id
             INNER JOIN roles r ON rp.rol_id = r.id
-            WHERE r.rol = ?
-        `, [rol_id]);
+            WHERE r.role = ?
+        `, [role]);  // Usar el nombre del rol para la consulta
+
+        console.log('Permisos obtenidos:', permisos);  // Verificar si se están obteniendo permisos correctamente
+
         if (permisos.length === 0) {
             return res.status(404).json({ message: 'Permisos no encontrados para este rol' });
         }
         res.status(200).json({ permisos });
     } catch (error) {
+        console.error('Error en la consulta:', error);  // Mostrar el error en el backend
         res.status(500).json({ error: 'Error al obtener permisos del rol' });
     }
 };

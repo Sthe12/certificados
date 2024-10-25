@@ -111,24 +111,26 @@ function RegistrarUsuarios() {
     };
 
     // Función para configurar permisos de un usuario
-    const handleConfigurarPermisos = async (user) => {
-        console.log(user); // Verifica si el campo rol_id está presente
-        try {
-            // Obtener los permisos actuales del rol seleccionado
-            const response = await axios.get(`http://localhost:3600/api/rol-perm/roles/${user.rol_id}/permisos`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+const handleConfigurarPermisos = async (user) => {
+    console.log('Rol del usuario seleccionado:', user.rol);  // Verificar si el nombre del rol es correcto
 
-            setSelectedUser({
-                ...user,
-                permisos: response.data.permisos.map(p => p.nombre_permiso) // Asigna los permisos del rol actual
-            });
+    try {
+        const response = await axios.get(`http://localhost:3600/api/rol-perm/roles/${user.rol}/permisos`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
 
-            setIsConfiguring(true);
-        } catch (err) {
-            Swal.fire('Error', 'Error al obtener los permisos del rol', 'error');
-        }
-    };
+        setSelectedUser({
+            ...user,
+            permisos: response.data.permisos.map(p => p.nombre_permiso) // Asigna los permisos del rol
+        });
+
+        setIsConfiguring(true);
+    } catch (err) {
+        console.error('Error en el frontend:', err.response);  // Imprimir el error detallado
+        Swal.fire('Error', 'Error al obtener los permisos del rol', 'error');
+    }
+};
+
 
     const togglePermiso = (permiso) => {
         if (selectedUser.permisos.includes(permiso)) {
