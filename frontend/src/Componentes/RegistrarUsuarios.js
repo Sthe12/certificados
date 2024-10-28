@@ -131,8 +131,6 @@ function RegistrarUsuarios() {
         }
     };
     
-
-
     const togglePermiso = (permiso) => {
         if (selectedUser.permisos.includes(permiso)) {
             setSelectedUser({
@@ -149,15 +147,38 @@ function RegistrarUsuarios() {
 
     const savePermisos = async () => {
         try {
-            await axios.put(`http://localhost:3600/api/rol-perm/roles/${selectedUser.id}/permisos`, 
+            // Asegúrate de que el token existe
+            const token = localStorage.getItem('token'); // O donde almacenes tu token
+    
+            if (!token) {
+                Swal.fire('Error', 'No hay sesión activa', 'error');
+                // Opcional: Redirigir al login
+                return;
+            }
+    
+            await axios.put(
+                `http://localhost:3600/api/rol-perm/roles/${selectedUser.id}/permisos`,
                 { permisos: selectedUser.permisos },
-                { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+                { 
+                    headers: { 
+                        'Authorization': `Bearer ${token}`, // Asegúrate de que el formato sea exactamente así
+                        'Content-Type': 'application/json'
+                    } 
+                }
             );
-            Swal.fire('Éxito', `Permisos del rol actualizados exitosamente`, 'success');
+    
+            Swal.fire('Éxito', 'Permisos del rol actualizados exitosamente', 'success');
             setIsConfiguring(false);
             fetchUsers();
         } catch (err) {
-            Swal.fire('Error', 'Error al actualizar permisos', 'error');
+            console.error('Error completo:', err); // Para debugging
+            
+            if (err.response?.status === 401) {
+                Swal.fire('Error', 'Sesión expirada o inválida', 'error');
+                // Opcional: Redirigir al login
+            } else {
+                Swal.fire('Error', 'Error al actualizar permisos', 'error');
+            }
         }
     };
 

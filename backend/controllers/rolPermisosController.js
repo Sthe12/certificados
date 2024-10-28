@@ -4,16 +4,16 @@ const db = require('../config/database');
 
 // Actualizar los permisos de un rol
 exports.updatePermissions = async (req, res) => {
-    const { role_id } = req.params;
+    const { rol_id } = req.params;
     const { permisos } = req.body; // Array de permisos que se asignarán al rol
 
     try {
         // Primero eliminamos los permisos actuales del rol
-        await db.query('DELETE FROM rol_permisos WHERE rol_id = ?', [role_id]);
+        await db.query('DELETE FROM rol_permisos WHERE rol_id = ?', [rol_id]);
 
         // Insertamos los nuevos permisos
         for (let permiso_id of permisos) {
-            await db.query('INSERT INTO rol_permisos (rol_id, permiso_id) VALUES (?, ?)', [role_id, permiso_id]);
+            await db.query('INSERT INTO rol_permisos (rol_id, permiso_id) VALUES (?, ?)', [rol_id, permiso_id]);
         }
 
         res.status(200).json({ message: 'Permisos actualizados correctamente' });

@@ -5,7 +5,8 @@ var express=require('express');
 var app=express();
 var authRoutes=require('./routes/authRoutes');
 var userRoutes = require('./routes/userRoutes');
-var userRoutes = require('./routes/rolPermisoRoutes');
+var rolPermisoRoutes = require('./routes/rolPermisoRoutes');
+
 app.use(express.urlencoded({extended:false}));
 app.use(express.json());
 //cabeceras van a procesar los metodos y control de acceso HTTP
