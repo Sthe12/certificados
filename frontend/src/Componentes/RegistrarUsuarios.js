@@ -17,6 +17,8 @@ function RegistrarUsuarios() {
     const [selectedUser, setSelectedUser] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
 
+
+
     const token = localStorage.getItem('token');
 
     // Permisos disponibles
@@ -194,11 +196,12 @@ function RegistrarUsuarios() {
         setIsConfiguring(false);
     };
 
-    const filteredUsers = users.filter(user =>
-        user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredUsers = Array.isArray(users) ? users.filter(user =>
+    user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    ) : [];
+
 
     return (
         <div className="container mx-auto p-4">
