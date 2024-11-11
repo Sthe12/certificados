@@ -6,6 +6,7 @@ var app=express();
 var authRoutes=require('./routes/authRoutes');
 var userRoutes = require('./routes/userRoutes');
 var rolPermisoRoutes = require('./routes/rolPermisoRoutes');
+var uploadRoutes = require('./routes/uploadRoutes');  
 
 app.use(express.urlencoded({extended:false}));
 app.use(express.json());
@@ -23,5 +24,6 @@ app.use((req,res,next)=>{
 app.use('/api/user',userRoutes);
 app.use('/api/auth',authRoutes);
 app.use('/api/rol-perm', rolPermisoRoutes);
+app.use('/upload', uploadRoutes);
 
 module.exports=app;

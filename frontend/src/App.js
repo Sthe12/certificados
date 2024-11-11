@@ -12,7 +12,7 @@ import RegistrarUsuario from './Componentes/RegistrarUsuarios';
 
 function App() {
   return (
-  
+
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
@@ -23,6 +23,8 @@ function App() {
         <Route path="/registrar-usuarios" element={<RegistrarUsuario />} /> 
       </Routes>
     </Router>
+
+    
    
   );
 }

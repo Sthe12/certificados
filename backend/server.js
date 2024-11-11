@@ -3,6 +3,9 @@ const cors = require('cors');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const rolPermisoRoutes = require('./routes/rolPermisoRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
+const path = require('path');
+
 
 //dotenv.config();
 
@@ -16,11 +19,16 @@ app.use(cors({
 
 // Middlewares
 app.use(express.json());
+//modificacion
+app.use(express.urlencoded({ extended: true }));
 
 // Rutas
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/rol-perm', rolPermisoRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/', uploadRoutes);
+app.use('/certificados', express.static(path.join(__dirname, 'certificados')));
 
 const PORT = process.env.PORT || 3600;
 app.listen(PORT, () => {
