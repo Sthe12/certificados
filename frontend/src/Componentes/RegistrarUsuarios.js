@@ -121,15 +121,25 @@ function RegistrarUsuarios() {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             console.log('Permisos obtenidos:', response.data.permisos);
+    
+            // Inicializa permisos como un array vacío si no existen permisos
             setSelectedUser({
                 ...user,
-                permisos: response.data.permisos.map(p => p.nombre_permiso) // Asigna los permisos del rol
+                permisos: response.data.permisos.length ? response.data.permisos.map(p => p.nombre_permiso) : []
             });
     
             setIsConfiguring(true);
         } catch (err) {
             console.error('Error en el frontend:', err.response); // Mostrar error detallado
-            Swal.fire('Error', 'Error al obtener los permisos del rol', 'error');
+    
+            // En caso de error, inicializa los permisos como un arreglo vacío y muestra el modal
+            setSelectedUser({
+                ...user,
+                permisos: []
+            });
+    
+            setIsConfiguring(true);
+            //Swal.fire('Error', 'Error al obtener los permisos del rol, pero puedes asignarlos desde cero', 'info');
         }
     };
     
@@ -149,12 +159,9 @@ function RegistrarUsuarios() {
 
     const savePermisos = async () => {
         try {
-            // Asegúrate de que el token existe
-            const token = localStorage.getItem('token'); // O donde almacenes tu token
-    
+            const token = localStorage.getItem('token');
             if (!token) {
                 Swal.fire('Error', 'No hay sesión activa', 'error');
-                // Opcional: Redirigir al login
                 return;
             }
     
@@ -163,7 +170,7 @@ function RegistrarUsuarios() {
                 { permisos: selectedUser.permisos },
                 { 
                     headers: { 
-                        'Authorization': `Bearer ${token}`, // Asegúrate de que el formato sea exactamente así
+                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     } 
                 }
@@ -173,11 +180,10 @@ function RegistrarUsuarios() {
             setIsConfiguring(false);
             fetchUsers();
         } catch (err) {
-            console.error('Error completo:', err); // Para debugging
+            console.error('Error completo:', err);
             
             if (err.response?.status === 401) {
                 Swal.fire('Error', 'Sesión expirada o inválida', 'error');
-                // Opcional: Redirigir al login
             } else {
                 Swal.fire('Error', 'Error al actualizar permisos', 'error');
             }
@@ -197,9 +203,9 @@ function RegistrarUsuarios() {
     };
 
     const filteredUsers = Array.isArray(users) ? users.filter(user =>
-    user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+        user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())
     ) : [];
 
 
@@ -344,6 +350,8 @@ function RegistrarUsuarios() {
                                 <option value="">Seleccionar Rol</option>
                                 <option value="admin">Admin</option>
                                 <option value="user">User</option>
+                                <option value="project_manager">Project_manager</option>
+                                <option value="robotics_engineer">Robotics_engineer</option>
                             </select>
                         </div>
                         <div className="flex items-center justify-between">
@@ -381,66 +389,58 @@ function RegistrarUsuarios() {
                             </button>
                         </div>
 
-                        {!selectedUser.permisos ? (
-                            <div className="flex justify-center items-center h-40">
-                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="mb-4">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Permiso
-                                                </th>
-                                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Estado
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {permisosDisponibles.map((permiso) => (
-                                                <tr key={permiso} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className="text-sm font-medium text-gray-900">
-                                                            {permiso.split('_').map(word => 
-                                                                word.charAt(0).toUpperCase() + word.slice(1)
-                                                            ).join(' ')}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                        <label className="inline-flex items-center cursor-pointer">
-                                                            <input
-                                                                type="checkbox"
-                                                                className="form-checkbox h-5 w-5 text-blue-600 rounded"
-                                                                checked={selectedUser.permisos.includes(permiso)}
-                                                                onChange={() => togglePermiso(permiso)}
-                                                            />
-                                                        </label>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                        <div className="mb-4">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Permiso
+                                        </th>
+                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Estado
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {permisosDisponibles.map((permiso) => (
+                                        <tr key={permiso} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="text-sm font-medium text-gray-900">
+                                                    {permiso.split('_').map(word => 
+                                                        word.charAt(0).toUpperCase() + word.slice(1)
+                                                    ).join(' ')}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                <label className="inline-flex items-center cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="form-checkbox h-5 w-5 text-blue-600 rounded"
+                                                        checked={selectedUser.permisos.includes(permiso)}
+                                                        onChange={() => togglePermiso(permiso)}
+                                                    />
+                                                </label>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
 
-                                <div className="flex justify-end space-x-4 mt-6">
-                                    <button
-                                        onClick={() => setIsConfiguring(false)}
-                                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md flex items-center"
-                                    >
-                                        <FaTimes className="mr-2" /> Cancelar
-                                    </button>
-                                    <button
-                                        onClick={savePermisos}
-                                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center"
-                                    >
-                                        <FaSave className="mr-2" /> Guardar Cambios
-                                    </button>
-                                </div>
-                            </>
-                        )}
+                        <div className="flex justify-end space-x-4 mt-6">
+                            <button
+                                onClick={() => setIsConfiguring(false)}
+                                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md flex items-center"
+                            >
+                                <FaTimes className="mr-2" /> Cancelar
+                            </button>
+                            <button
+                                onClick={savePermisos}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center"
+                            >
+                                <FaSave className="mr-2" /> Guardar Cambios
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
