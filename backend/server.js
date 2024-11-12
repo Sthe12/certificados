@@ -5,7 +5,8 @@ const authRoutes = require('./routes/authRoutes');
 const rolPermisoRoutes = require('./routes/rolPermisoRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const path = require('path');
-
+const multer = require('multer');
+const routes = require('./routes/uploadRoutes');
 
 //dotenv.config();
 
@@ -19,6 +20,20 @@ app.use(cors({
 
 // Middlewares
 app.use(express.json());
+
+// Configuración de almacenamiento para Multer
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname)); // Nombre único para cada archivo
+  },
+});
+
+const upload = multer({ storage: storage });
+// Usar las rutas
+app.use(routes);
 //modificacion
 app.use(express.urlencoded({ extended: true }));
 

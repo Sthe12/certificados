@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 //const { processUpload } = require('../controllers/uploadController');
-const { handleUpload, handleDownload } = require('../controllers/uploadController');
+const { handleUpload, handleDownload, handlePreview } = require('../controllers/uploadController');
 const path = require('path');
 //const { handleUpload, processUpload } = require('../controllers/uploadController');
 
@@ -25,5 +25,6 @@ const storage = multer.diskStorage({
 router.post('/upload', upload.single('file'), handleUpload);
 router.get('/download/:id', handleDownload);
 router.post('/upload', handleUpload);
+router.post('/preview', handlePreview);
 
 module.exports = router;
