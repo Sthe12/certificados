@@ -1,0 +1,25 @@
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f9f9f9;
+  }
+  
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+  }
+  
+  h1, h3 {
+    color: #333;
+  }
+  
+  button {
+    margin-right: 10px;
+  }
+  
+  table {
+    margin-top: 20px;
+  }
+  

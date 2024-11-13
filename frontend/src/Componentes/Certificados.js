@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { Container, Button, Form, Table, Spinner, Alert } from 'react-bootstrap';
+import './Certificados.css';
+
 
 const Certificados = () => {
   const [file, setFile] = useState(null);
@@ -10,6 +13,7 @@ const Certificados = () => {
     fontColor: '#000000',
     imageUrl: '',
   });
+  const [error, setError] = useState('');
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -30,6 +34,7 @@ const Certificados = () => {
     formData.append('file', file);
 
     setLoading(true);
+    setError('');
     try {
       const response = await axios.post('http://localhost:3600/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -38,10 +43,10 @@ const Certificados = () => {
       if (response.data && response.data.datos) {
         setDatosExcel(response.data.datos);
       } else {
-        alert('No se encontraron datos válidos en el archivo Excel.');
+        setError('No se encontraron datos válidos en el archivo Excel.');
       }
     } catch (error) {
-      alert('Hubo un problema procesando el archivo.');
+      setError('Hubo un problema procesando el archivo.');
     } finally {
       setLoading(false);
     }
@@ -50,96 +55,113 @@ const Certificados = () => {
   const handlePreview = async (item) => {
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:3600/preview', {
-        nombre: item.nombre,
-        curso: item.curso,
-        fecha: item.fecha,
-        puntuacion: item.puntuacion,
-      });
-  
-      // Redirigir al PDF generado
-      window.open(response.data.url, '_blank'); // Abrir el PDF en una nueva pestaña
-    } catch (error) {
-      alert('Hubo un problema generando la previsualización.');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-
-  const handleDownload = async (item) => {
-    try {
       const response = await axios.post(
-        `http://localhost:3600/download`,
+        'http://localhost:3600/preview',
         {
           nombre: item.nombre,
           curso: item.curso,
           fecha: item.fecha,
           puntuacion: item.puntuacion,
-          fontSize: customOptions.fontSize || 16,
-          fontColor: customOptions.fontColor || '#000000',
-          imageUrl: customOptions.imageUrl || '',
+          fontSize: customOptions.fontSize,
+          fontColor: customOptions.fontColor,
+          imageUrl: customOptions.imageUrl,
         },
         { responseType: 'blob' }
       );
 
-      const urlBlob = window.URL.createObjectURL(new Blob([response.data]));
-      const a = document.createElement('a');
-      a.href = urlBlob;
-      a.download = `${item.nombre.replace(/\s+/g, '_')}_certificado.pdf`;
-      a.click();
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const blobURL = URL.createObjectURL(blob);
+      window.open(blobURL, '_blank');
     } catch (error) {
-      alert('Hubo un problema descargando el certificado.');
+      setError('Hubo un problema generando la previsualización.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownload = async (item) => {
+    const { fontSize, fontColor, imageUrl } = customOptions;
+    try {
+      const response = await axios.post(
+        'http://localhost:3600/certificados/descargar',
+        {
+          nombre: item.nombre,
+          curso: item.curso,
+          fecha: item.fecha,
+          puntuacion: item.puntuacion,
+          fontSize,
+          fontColor,
+          imageUrl,
+        },
+        { responseType: 'blob' }
+      );
+
+      const blob = response.data;
+      const blobURL = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = blobURL;
+      link.download = `${item.nombre.replace(/\s+/g, '_')}_certificado.pdf`;
+      link.click();
+      URL.revokeObjectURL(blobURL);
+    } catch (error) {
+      setError('Hubo un problema descargando el certificado.');
     }
   };
 
   return (
-    <div>
-      <h1>Generar Certificado Personalizado</h1>
+    <Container>
+      <h1 className="my-4">Generar Certificado Personalizado</h1>
+      
+      {error && <Alert variant="danger">{error}</Alert>}
 
-      <label>Selecciona archivo Excel:</label>
-      <input type="file" onChange={handleFileChange} />
-      <button onClick={handleUpload} disabled={loading}>
-        Subir Archivo
-      </button>
+      <Form>
+        <Form.Group controlId="fileUpload">
+          <Form.Label>Selecciona archivo Excel</Form.Label>
+          <Form.Control type="file" onChange={handleFileChange} />
+        </Form.Group>
+        <Button onClick={handleUpload} disabled={loading} className="mt-3">
+          {loading ? <Spinner animation="border" size="sm" /> : 'Subir Archivo'}
+        </Button>
+      </Form>
 
       {datosExcel.length > 0 && (
-        <div>
-          <h3>Personalización de Certificados</h3>
-          <form>
-            <label>
-              Tamaño de la fuente:
-              <input
+        <>
+          <h3 className="my-4">Personalización de Certificados</h3>
+          <Form>
+            <Form.Group controlId="fontSize">
+              <Form.Label>Tamaño de la fuente</Form.Label>
+              <Form.Control
                 type="number"
                 name="fontSize"
                 value={customOptions.fontSize}
                 onChange={handleCustomChange}
                 min="10"
               />
-            </label>
-            <label>
-              Color de la fuente:
-              <input
+            </Form.Group>
+            <Form.Group controlId="fontColor">
+              <Form.Label>Color de la fuente</Form.Label>
+              <Form.Control
                 type="color"
                 name="fontColor"
                 value={customOptions.fontColor}
                 onChange={handleCustomChange}
               />
-            </label>
-            <label>
-              URL de la imagen:
-              <input
+            </Form.Group>
+            <Form.Group controlId="imageUrl">
+              <Form.Label>URL de la imagen</Form.Label>
+              <Form.Control
                 type="text"
                 name="imageUrl"
                 value={customOptions.imageUrl}
                 onChange={handleCustomChange}
                 placeholder="http://..."
               />
-            </label>
-          </form>
+            </Form.Group>
+          </Form>
 
-          <h3>Datos del Excel</h3>
-          <table border="1">
+          <h3 className="my-4">Datos del Excel</h3>
+          <Table striped bordered hover>
             <thead>
               <tr>
                 <th>Nombre</th>
@@ -157,16 +179,16 @@ const Certificados = () => {
                   <td>{item.fecha}</td>
                   <td>{item.puntuacion}</td>
                   <td>
-                    <button onClick={() => handlePreview(item)}>Previsualizar</button>
-                    <button onClick={() => handleDownload(item)}>Descargar</button>
+                    <Button variant="primary" onClick={() => handlePreview(item)}>Previsualizar</Button>
+                    <Button variant="success" onClick={() => handleDownload(item)}>Descargar</Button>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+          </Table>
+        </>
       )}
-    </div>
+    </Container>
   );
 };
 
