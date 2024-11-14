@@ -1,7 +1,12 @@
 const express = require('express');
 const multer = require('multer');
-const { handleUpload, handleDownload, handlePreview } = require('../controllers/uploadController');
+const fs = require('fs');
 const path = require('path');
+const {
+  handleUpload,
+  handleDownload,
+  handlePreview,
+} = require('../controllers/uploadController');
 
 const router = express.Router();
 
@@ -15,16 +20,28 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+// Configuración de multer con límite de tamaño de archivo (10MB)
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+});
 
 // Ruta para subir el archivo Excel
 router.post('/upload', upload.single('file'), handleUpload);
 
 // Ruta para previsualizar el certificado
-router.post('/preview', handlePreview);
+router.post(
+  '/preview',
+  upload.single('image'), // Manejar la imagen cargada si se incluye
+  handlePreview
+);
 
 // Ruta para descargar el certificado generado
-router.post('/certificados/descargar', handleDownload);
+router.post(
+  '/certificados/descargar',
+  upload.single('image'), // Manejar la imagen cargada si se incluye
+  handleDownload
+);
 
 // Exporta el router
 module.exports = router;

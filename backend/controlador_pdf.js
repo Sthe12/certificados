@@ -4,9 +4,10 @@ const XLSX = require('xlsx');
 const fs = require('fs');
 const { PDFDocument, rgb } = require('pdf-lib');
 const path = require('path');
-
 const app = express();
 const upload = multer({ dest: 'uploads/' });
+
+
 
 app.use(express.json());
 
@@ -43,6 +44,11 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     console.error(error);
     res.status(500).json({ message: 'Error al procesar el archivo' });
   }
+});
+
+app.post('/preview', upload.single('imageFile'), (req, res) => {
+  console.log(req.body);  // Aquí se verán los otros campos
+  console.log(req.file);   // Aquí estará el archivo si se cargó
 });
 
 const PORT = 3600;

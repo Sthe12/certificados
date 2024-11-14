@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Container, Button, Form, Table, Spinner, Alert } from 'react-bootstrap';
-import './Certificados.css';
-
 
 const Certificados = () => {
   const [file, setFile] = useState(null);
@@ -11,17 +9,23 @@ const Certificados = () => {
   const [customOptions, setCustomOptions] = useState({
     fontSize: 16,
     fontColor: '#000000',
-    imageUrl: '',
   });
+  const [imageFile, setImageFile] = useState(null); // Estado para la imagen
   const [error, setError] = useState('');
+  const [fileError, setFileError] = useState('');
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
+    setFileError(''); // Reset file error on file change
   };
 
   const handleCustomChange = (e) => {
     const { name, value } = e.target;
     setCustomOptions({ ...customOptions, [name]: value });
+  };
+
+  const handleImageChange = (e) => {
+    setImageFile(e.target.files[0]); // Captura el archivo de imagen
   };
 
   const handleUpload = async () => {
@@ -46,7 +50,11 @@ const Certificados = () => {
         setError('No se encontraron datos válidos en el archivo Excel.');
       }
     } catch (error) {
-      setError('Hubo un problema procesando el archivo.');
+      if (error.response && error.response.status === 400) {
+        setFileError('El archivo es demasiado grande. El tamaño máximo permitido es 10MB.');
+      } else {
+        setError('Hubo un problema procesando el archivo.');
+      }
     } finally {
       setLoading(false);
     }
@@ -54,20 +62,24 @@ const Certificados = () => {
 
   const handlePreview = async (item) => {
     setLoading(true);
+
+    const formData = new FormData();
+    formData.append('nombre', item.nombre);
+    formData.append('curso', item.curso);
+    formData.append('fecha', item.fecha);
+    formData.append('puntuacion', item.puntuacion);
+    formData.append('fontSize', customOptions.fontSize);
+    formData.append('fontColor', customOptions.fontColor);
+
+    if (imageFile) {
+      formData.append('image', imageFile); // Adjunta la imagen si existe
+    }
+
     try {
-      const response = await axios.post(
-        'http://localhost:3600/preview',
-        {
-          nombre: item.nombre,
-          curso: item.curso,
-          fecha: item.fecha,
-          puntuacion: item.puntuacion,
-          fontSize: customOptions.fontSize,
-          fontColor: customOptions.fontColor,
-          imageUrl: customOptions.imageUrl,
-        },
-        { responseType: 'blob' }
-      );
+      const response = await axios.post('http://localhost:3600/preview', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        responseType: 'blob',
+      });
 
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const blobURL = URL.createObjectURL(blob);
@@ -80,40 +92,49 @@ const Certificados = () => {
   };
 
   const handleDownload = async (item) => {
-    const { fontSize, fontColor, imageUrl } = customOptions;
+    const { fontSize, fontColor } = customOptions;
+  
+    const formData = new FormData();
+    formData.append('nombre', item.nombre);
+    formData.append('curso', item.curso);
+    formData.append('fecha', item.fecha);
+    formData.append('puntuacion', item.puntuacion);
+    formData.append('fontSize', fontSize);
+    formData.append('fontColor', fontColor);
+  
+    // Si se subió una imagen, adjuntarla
+    if (file) {
+      formData.append('image', file);
+    }
+  
     try {
-      const response = await axios.post(
-        'http://localhost:3600/certificados/descargar',
-        {
-          nombre: item.nombre,
-          curso: item.curso,
-          fecha: item.fecha,
-          puntuacion: item.puntuacion,
-          fontSize,
-          fontColor,
-          imageUrl,
+      const response = await axios.post('http://localhost:3600/certificados/descargar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
         },
-        { responseType: 'blob' }
-      );
-
+        responseType: 'blob',
+      });
+  
       const blob = response.data;
       const blobURL = URL.createObjectURL(blob);
-
+  
       const link = document.createElement('a');
       link.href = blobURL;
       link.download = `${item.nombre.replace(/\s+/g, '_')}_certificado.pdf`;
       link.click();
       URL.revokeObjectURL(blobURL);
     } catch (error) {
-      setError('Hubo un problema descargando el certificado.');
+      console.error('Error al intentar descargar el certificado:', error.response || error);
+      setError(error.response?.data?.error || 'Hubo un problema descargando el certificado.');
     }
   };
-
+  
   return (
     <Container>
       <h1 className="my-4">Generar Certificado Personalizado</h1>
-      
+
       {error && <Alert variant="danger">{error}</Alert>}
+      {fileError && <Alert variant="danger">{fileError}</Alert>}
 
       <Form>
         <Form.Group controlId="fileUpload">
@@ -148,15 +169,9 @@ const Certificados = () => {
                 onChange={handleCustomChange}
               />
             </Form.Group>
-            <Form.Group controlId="imageUrl">
-              <Form.Label>URL de la imagen</Form.Label>
-              <Form.Control
-                type="text"
-                name="imageUrl"
-                value={customOptions.imageUrl}
-                onChange={handleCustomChange}
-                placeholder="http://..."
-              />
+            <Form.Group controlId="imageUpload">
+              <Form.Label>Subir Imagen</Form.Label>
+              <Form.Control type="file" accept="image/*" onChange={handleImageChange} />
             </Form.Group>
           </Form>
 

@@ -4,11 +4,19 @@ const { PDFDocument, rgb } = require('pdf-lib');
 const path = require('path');
 const qrcode = require('qrcode');
 const fetch = require('node-fetch');
+const sharp = require('sharp');
+
+const certificadosDir = path.join(__dirname, 'certificados');
+
+// Crear la carpeta `certificados` si no existe
+if (!fs.existsSync(certificadosDir)) {
+  fs.mkdirSync(certificadosDir);
+}
 
 // Función para generar un certificado PDF
 const generateCertificate = async (data, options = {}) => {
   const { nombre, curso, fecha, puntuacion } = data;
-  const { fontSize = 16, fontColor = '#000000', imageUrl = null } = options;
+  const { fontSize = 16, fontColor = '#000000', imageFile = null, imageUrl = null } = options;
 
   // Generar el QR Code
   const qrCodeData = `http://localhost:3600/certificados/${nombre.replace(/\s+/g, '_')}_certificado.pdf`;
@@ -32,15 +40,56 @@ const generateCertificate = async (data, options = {}) => {
   page.drawText(`Fecha: ${fecha}`, { x: 50, y: 240, size: fontSizeParsed, color: fontColorParsed });
   page.drawText(`Puntuación: ${puntuacion}`, { x: 50, y: 210, size: fontSizeParsed, color: fontColorParsed });
 
-  // Agregar la imagen si se proporciona
-  if (imageUrl) {
+  // Función para manejar y convertir imágenes
+  const handleImage = async (image) => {
     try {
-      const imageBytes = await fetch(imageUrl).then((res) => res.arrayBuffer());
-      const image = await pdfDoc.embedPng(imageBytes);
-      page.drawImage(image, { x: 50, y: 100, width: 100, height: 100 });
+      // Verificar el tipo de imagen con image-type
+      const buffer = fs.readFileSync(image.path);
+      const type = imageType(buffer);
+
+      if (!type) {
+        throw new Error('No se pudo detectar el tipo de imagen.');
+      }
+
+      // Si es un PNG o JPG
+      if (type.ext === 'png') {
+        return await pdfDoc.embedPng(buffer);
+      } else if (type.ext === 'jpg' || type.ext === 'jpeg') {
+        // Convertir JPG a PNG antes de insertar
+        const imageBuffer = await sharp(image.path).png().toBuffer();
+        return await pdfDoc.embedPng(imageBuffer);
+      } else {
+        throw new Error('Formato de imagen no soportado. Solo PNG o JPG están permitidos.');
+      }
     } catch (error) {
-      console.warn('No se pudo cargar la imagen de la URL proporcionada:', error);
+      console.warn('Error al procesar la imagen:', error);
+      return null;
     }
+  };
+
+  // Agregar la imagen cargada si existe
+  let image;
+  if (imageFile) {
+    image = await handleImage(imageFile);
+  } else if (imageUrl) {
+    try {
+      const response = await fetch(imageUrl);
+      const imageBuffer = await response.buffer();
+      const type = imageType(imageBuffer);
+
+      if (type && (type.ext === 'png' || type.ext === 'jpg' || type.ext === 'jpeg')) {
+        const imageEmbed = await pdfDoc.embedPng(imageBuffer);
+        page.drawImage(imageEmbed, { x: 50, y: 100, width: 100, height: 100 });
+      } else {
+        console.warn('Formato de imagen no soportado desde la URL:', imageUrl);
+      }
+    } catch (error) {
+      console.warn('Error al cargar imagen desde URL:', error);
+    }
+  }
+
+  if (image) {
+    page.drawImage(image, { x: 50, y: 100, width: 100, height: 100 });
   }
 
   // Agregar el código QR
@@ -50,7 +99,7 @@ const generateCertificate = async (data, options = {}) => {
   return pdfDoc.save();
 };
 
-// Ruta para subir el archivo Excel
+// Ruta para procesar la subida del archivo Excel
 const handleUpload = async (req, res) => {
   try {
     if (!req.file) {
@@ -84,6 +133,7 @@ const handleUpload = async (req, res) => {
 const handlePreview = async (req, res) => {
   try {
     const { nombre, curso, fecha, puntuacion, fontSize, fontColor, imageUrl } = req.body;
+    const imageFile = req.file; // Archivo de imagen cargado (opcional)
 
     if (!nombre || !curso || !fecha || !puntuacion) {
       return res.status(400).json({ error: 'Faltan datos requeridos para generar la vista previa.' });
@@ -91,51 +141,41 @@ const handlePreview = async (req, res) => {
 
     const pdfBytes = await generateCertificate(
       { nombre, curso, fecha, puntuacion },
-      { fontSize, fontColor, imageUrl }
+      { fontSize, fontColor, imageFile, imageUrl }
     );
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'inline; filename="preview_certificado.pdf"');
-    res.send(Buffer.from(pdfBytes)); // Envía el PDF directamente
+    res.send(Buffer.from(pdfBytes));
   } catch (error) {
     console.error('Error generando la vista previa del certificado:', error);
     res.status(500).json({ error: 'Hubo un problema generando la vista previa del certificado.' });
   }
 };
 
-// Ruta para descargar el certificado
+// Ruta para generar y descargar el certificado
 const handleDownload = async (req, res) => {
-  const { nombre, curso, fecha, puntuacion, fontSize, fontColor, imageUrl } = req.body;
-
-  // Verifica si los parámetros son válidos
-  if (!nombre || !curso || !fecha || !puntuacion) {
-    return res.status(400).json({ error: 'Faltan datos requeridos para generar el certificado.' });
-  }
-
   try {
-    // Llama a la función para generar el certificado con las opciones personalizadas
+    const { nombre, curso, fecha, puntuacion, fontSize, fontColor, imageUrl } = req.body;
+    const imageFile = req.file; // Archivo de imagen cargado (opcional)
+
+    if (!nombre || !curso || !fecha || !puntuacion) {
+      return res.status(400).json({ error: 'Faltan datos requeridos para generar el certificado.' });
+    }
+
     const pdfBytes = await generateCertificate(
       { nombre, curso, fecha, puntuacion },
-      { fontSize, fontColor, imageUrl }
+      { fontSize, fontColor, imageFile, imageUrl }
     );
 
-    // Asegúrate de que el archivo PDF se genera correctamente
-    console.log('PDF generado correctamente, enviando al frontend...');
-
-    // Guarda el PDF generado en el servidor (si es necesario)
-    const pdfFilePath = path.join(__dirname, '..', 'certificados', `${nombre.replace(/\s+/g, '_')}_certificado.pdf`);
+    const pdfFilePath = path.join(certificadosDir, `${nombre.replace(/\s+/g, '_')}_certificado.pdf`);
     fs.writeFileSync(pdfFilePath, Buffer.from(pdfBytes));
 
-    // Enviar el PDF directamente como respuesta
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename="certificado.pdf"');
-    res.send(Buffer.from(pdfBytes)); // Envía el PDF directamente
-
+    res.json({ url: `/certificados/${nombre.replace(/\s+/g, '_')}_certificado.pdf` });
   } catch (error) {
     console.error('Error al generar el PDF:', error);
     res.status(500).json({ error: 'Hubo un problema al generar el certificado.' });
   }
 };
 
-// Exportar las funciones
-module.exports = { handleUpload, handlePreview, handleDownload };
+module.exports = { handleUpload, handlePreview, handleDownload, generateCertificate };

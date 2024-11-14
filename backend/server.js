@@ -31,10 +31,16 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage: storage });
+// Configuración de multer con límite de tamaño de archivo
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }  // 10 MB
+});
+
 // Usar las rutas
 app.use(routes);
-//modificacion
+
+//modificación
 app.use(express.urlencoded({ extended: true }));
 
 // Rutas
@@ -49,8 +55,3 @@ const PORT = process.env.PORT || 3600;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-
-
-
-
