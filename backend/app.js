@@ -7,6 +7,7 @@ var authRoutes=require('./routes/authRoutes');
 var userRoutes = require('./routes/userRoutes');
 var rolPermisoRoutes = require('./routes/rolPermisoRoutes');
 var uploadRoutes = require('./routes/uploadRoutes');  
+require = require('esm')(module);
 
 app.use(express.urlencoded({extended:false}));
 app.use(express.json());

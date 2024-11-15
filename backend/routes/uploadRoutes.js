@@ -6,17 +6,22 @@ const {
   handleUpload,
   handleDownload,
   handlePreview,
-} = require('../controllers/uploadController');
+} = require('../controllers/uploadController.js');
 
 const router = express.Router();
 
 // Configuración de multer para la subida de archivos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Carpeta donde se guardarán los archivos subidos
+    const uploadDir = 'uploads/';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true }); // Crear la carpeta si no existe
+    }
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Nombre único para cada archivo subido
+    const uniqueName = Date.now() + path.extname(file.originalname);
+    cb(null, uniqueName);
   },
 });
 
@@ -26,20 +31,37 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
 });
 
-// Ruta para subir el archivo Excel
+// Middleware para verificar si se sube una imagen
+const validateImage = (req, res, next) => {
+  if (req.file) {
+    const validMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!validMimeTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        error: 'Solo se permiten imágenes en formato PNG, JPG o JPEG.',
+      });
+    }
+  }
+  next();
+};
+
+// Rutas
+
+// Ruta para subir un archivo Excel
 router.post('/upload', upload.single('file'), handleUpload);
 
-// Ruta para previsualizar el certificado
+// Ruta para previsualizar un certificado
 router.post(
   '/preview',
-  upload.single('image'), // Manejar la imagen cargada si se incluye
+  upload.single('image'), // Cargar imagen opcional
+  validateImage, // Validar que sea una imagen válida
   handlePreview
 );
 
-// Ruta para descargar el certificado generado
+// Ruta para descargar un certificado (actualizada a /certificados/descargar)
 router.post(
-  '/certificados/descargar',
-  upload.single('image'), // Manejar la imagen cargada si se incluye
+  '/certificados/descargar', // Cambiado a /certificados/descargar para coincidir con el frontend
+  upload.single('image'), // Cargar imagen opcional
+  validateImage, // Validar que sea una imagen válida
   handleDownload
 );
 

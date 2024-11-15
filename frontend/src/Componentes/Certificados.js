@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Container, Button, Form, Table, Spinner, Alert } from 'react-bootstrap';
 
+
+
 const Certificados = () => {
   const [file, setFile] = useState(null);
   const [datosExcel, setDatosExcel] = useState([]);
@@ -25,7 +27,13 @@ const Certificados = () => {
   };
 
   const handleImageChange = (e) => {
-    setImageFile(e.target.files[0]); // Captura el archivo de imagen
+    const file = e.target.files[0];
+    if (file && (file.type === 'image/jpeg' || file.type === 'image/png')) {
+      setImageFile(file); // Captura el archivo de imagen solo si es válido
+    } else {
+      setError('Solo se permiten imágenes en formato PNG, JPG o JPEG.');
+      setImageFile(null); // Resetea el estado si el archivo no es válido
+    }
   };
 
   const handleUpload = async () => {
@@ -103,8 +111,8 @@ const Certificados = () => {
     formData.append('fontColor', fontColor);
   
     // Si se subió una imagen, adjuntarla
-    if (file) {
-      formData.append('image', file);
+    if (imageFile) {
+      formData.append('image', imageFile);
     }
   
     try {
@@ -112,7 +120,7 @@ const Certificados = () => {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        responseType: 'blob',
+        responseType: 'blob', // Asegúrate de que la respuesta sea de tipo blob
       });
   
       const blob = response.data;
@@ -128,7 +136,7 @@ const Certificados = () => {
       setError(error.response?.data?.error || 'Hubo un problema descargando el certificado.');
     }
   };
-  
+
   return (
     <Container>
       <h1 className="my-4">Generar Certificado Personalizado</h1>
